@@ -1,0 +1,180 @@
+#include <stdio.h>
+#include <string.h>
+
+#include <stdlib.h>
+
+typedef struct tiedot {
+        char sana[40];
+        int luokka;
+        struct tiedot *pSeuraava;
+    } TIEDOT;
+
+int valikko(void);
+
+char *kysyNimi(char *prompti, char *nimi);
+
+TIEDOT *tiedostoLue(char *nimi, TIEDOT *pAlku);
+
+int analysoi(TIEDOT* pAlku, int *taulukko);
+
+int tiedostoKirjoita(char *nimi, int *taulukko);
+
+TIEDOT *tyhjennys(TIEDOT *pAlku);
+
+int main(void) {
+    int taulukko[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    int valinta, i;
+    TIEDOT *pAlku = NULL;
+    char nimi1[50], nimi2[50];
+    int x = 0;
+    do {
+        valinta = valikko();
+        if (valinta == 1) {
+            kysyNimi("Anna tiedoston nimi", nimi1);
+            pAlku = tiedostoLue(nimi1, pAlku);
+            x = x + 1;
+        } else if (valinta == 2) {
+            for (int i = 0; i < 10; i++) {
+                    taulukko[i] = 0;
+                }
+            if (x == 0) {
+                printf("Ei analysoitavaa, lue tiedosto ennen analyysiä.\n\n");
+            } else {
+                analysoi(pAlku, taulukko);
+            }
+        } else if (valinta == 3) {
+            if (x == 0) {
+                printf("Ei kirjoitettavia tietoja, analysoi tiedot ennen tallennusta.\n\n");
+            } else {
+                kysyNimi("Anna tiedoston nimi", nimi2);
+                tiedostoKirjoita(nimi2, taulukko);
+            }
+        } else if (valinta != 0) {
+            printf("Tuntematon valinta, yritä uudestaan.\n\n");
+        }
+    } while (valinta != 0);
+        pAlku = tyhjennys(pAlku);
+        printf("Lopetetaan.\n");
+        printf("\nKiitos ohjelman käytöstä.\n");
+
+    return(0);
+}
+
+int valikko() {
+    int valinta;
+
+    printf("Valitse haluamasi toiminto:\n");
+    printf("1) Lue tiedosto\n");
+    printf("2) Analysoi tiedot\n");
+    printf("3) Kirjoita tulokset\n");
+    printf("0) Lopeta\n"); 
+    printf("Anna valintasi: ");
+    scanf("%d", &valinta);
+    return (valinta);
+}
+
+char *kysyNimi(char *prompti, char *nimi) {
+    printf("%s: ", prompti);
+    scanf("%s", nimi);
+    return(nimi);
+}
+
+TIEDOT *tiedostoLue(char *nimi, TIEDOT *pAlku) {
+    
+    TIEDOT *pLoppu = NULL;
+    TIEDOT *pUusi;
+    char rivi[100];
+    char *token;
+    int token2;
+    FILE *tiedosto;
+    if (pAlku != NULL) {
+        pAlku = tyhjennys(pAlku);
+    }
+    if ((tiedosto = fopen(nimi, "r")) == NULL) {
+        perror("Tiedoston avaaminen epäonnistui, lopetetaan");
+        exit(0);
+    } else {
+        printf("Tiedosto '%s' luettu.\n\n", nimi);
+    }
+    fgets(rivi, 100, tiedosto);
+    while (fgets(rivi, 100, tiedosto) != NULL) {
+        if ((pUusi = (TIEDOT*)malloc(sizeof(TIEDOT))) == NULL) {
+            perror("Muistin varaus epäonnistui");
+            exit(0);
+        }
+        token = strtok(rivi, ";");
+        token2 = atoi(strtok(NULL, ";"));
+            strcpy(pUusi->sana, token);
+            pUusi->luokka = token2;
+            pUusi->pSeuraava = NULL;
+            if(pAlku == NULL) {
+                pAlku = pUusi;
+                pLoppu = pUusi;
+            } else {
+                pLoppu->pSeuraava = pUusi;
+                pLoppu = pUusi;
+            }
+    }
+  
+
+     fclose(tiedosto);
+     return(pAlku);
+}
+
+
+int analysoi(TIEDOT *pAlku, int *taulukko) {
+    TIEDOT *ptr;
+    char *vika;
+    int i;
+    int maara = 0;
+    ptr = pAlku;
+    while (ptr != NULL) {
+        for (i = 0; i < 10; i++){
+            if(ptr->luokka - 1 == i) {
+            taulukko[i]++;
+            }
+        }
+        maara = maara + 1;
+        vika = ptr->sana;
+        ptr = ptr->pSeuraava;
+    }
+
+    
+    printf("Analysoitu %d data-alkiota, sanasta '%s' sanaan '%s'.\n\n", maara, pAlku->sana, vika);
+
+
+    return(taulukko);
+}
+
+int tiedostoKirjoita(char *nimi, int *taulukko) {
+    int i;
+    int j = 1;
+    FILE *tiedosto;
+    if ((tiedosto = fopen(nimi, "w")) == NULL) {
+        perror("Tiedoston avaaminen epäonnistui, lopetetaan");
+        exit(0);
+    } else {
+        printf("Tiedosto '%s' kirjoitettu.\n\n", nimi);
+    }
+    fprintf(tiedosto, "Sanaluokka;Lkm\n");
+    for(i = 0; i < 10; i++) {
+        fprintf(tiedosto, "Luokka %d;%d\n", j++, taulukko[i]);
+    }
+
+    fclose(tiedosto);
+    return(0);
+}
+
+TIEDOT *tyhjennys(TIEDOT *pAlku) {
+    TIEDOT *ptr;
+    ptr = pAlku;
+        while(ptr != NULL) {
+            pAlku = ptr->pSeuraava;
+            free(ptr);
+            ptr = pAlku;
+    }
+    ptr = NULL;
+    return(pAlku);
+}
+
+/* eof */
